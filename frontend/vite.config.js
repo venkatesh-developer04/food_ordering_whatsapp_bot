@@ -8,11 +8,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://waitro-backend.onrender.com',
+        target: 'https://waitros-backend.onrender.com',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'https://waitro-backend.onrender.com',
+        target: 'https://waitros-backend.onrender.com',
         changeOrigin: true,
       },
     },
