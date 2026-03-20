@@ -96,7 +96,7 @@ export default function App() {
     };
 
     const copyPaymentLink = (t) => {
-        const link = `http://localhost:3001/?checkout=${t._id}`;
+        const link = `https://waitro-home.onrender.com/?checkout=${t._id}`;
         navigator.clipboard.writeText(link);
         alert(`Payment link copied for ${t.name}!\n\n${link}`);
     };
