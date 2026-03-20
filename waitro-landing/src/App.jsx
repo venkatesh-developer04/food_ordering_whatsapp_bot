@@ -17,7 +17,9 @@ export default function App() {
     const checkoutId = params.get('checkout');
     if (checkoutId) {
       setCheckoutLoading(true);
-      fetch(`/api/admin/tenants/${checkoutId}`)
+      const rawApiUrl = import.meta.env.VITE_API_URL || '';
+      const cleanApi = rawApiUrl ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '') + '/api' : '/api';
+      fetch(`${cleanApi}/admin/tenants/${checkoutId}`)
         .then(res => res.json())
         .then(data => {
           if (!data.error) setCheckoutTenant(data);
@@ -48,9 +50,12 @@ export default function App() {
         try {
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + (checkoutTenant.subscription?.plan === 'pro' ? 3 : 1));
+          
+          const rawApiUrl = import.meta.env.VITE_API_URL || '';
+          const cleanApi = rawApiUrl ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '') + '/api' : '/api';
 
           // Activate tenant via our backend API
-          const res = await fetch(`/api/admin/tenants/${checkoutTenant._id}`, {
+          const res = await fetch(`${cleanApi}/admin/tenants/${checkoutTenant._id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -101,8 +106,11 @@ export default function App() {
         }
       };
 
+      const rawApiUrl = import.meta.env.VITE_API_URL || '';
+      const cleanApi = rawApiUrl ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '') + '/api' : '/api';
+
       // Send the lead to the backend Control Panel
-      const res = await fetch('/api/admin/tenants', {
+      const res = await fetch(`${cleanApi}/admin/tenants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

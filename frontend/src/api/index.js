@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-const API = axios.create({ baseURL: '/api' });
-
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const cleanApiUrl = rawApiUrl ? rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '') + '/api' : '/api';
+const API = axios.create({ baseURL: cleanApiUrl });
 API.interceptors.request.use((config) => {
     const tenantId = localStorage.getItem('tenantId');
     if (tenantId) config.headers['x-tenant-id'] = tenantId;

@@ -3,7 +3,9 @@ import axios from 'axios';
 import { Plus, Trash2, Edit, Save, X, IndianRupee, Users, Clock, ShieldCheck, LogOut, ArrowRightCircle, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
 import './index.css';
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api/admin' });
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const cleanApiUrl = rawApiUrl ? rawApiUrl.replace(/\/api\/admin\/?$/, '').replace(/\/$/, '') + '/api/admin' : '/api/admin';
+const api = axios.create({ baseURL: cleanApiUrl });
 
 function Login({ onLogin }) {
     const [user, setUser] = useState('');
