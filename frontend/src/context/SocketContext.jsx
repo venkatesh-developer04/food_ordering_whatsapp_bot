@@ -8,7 +8,7 @@ export function SocketProvider({ children }) {
     const [waStatus, setWaStatus] = useState('connecting');
 
     useEffect(() => {
-        const s = io('http://localhost:5000');
+        const s = io('https://waitro-backend.onrender.com');
         setSocket(s);
 
         s.on('connect', () => console.log('Socket connected'));
