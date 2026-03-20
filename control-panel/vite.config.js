@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': 'https://waitro-backend.onrender.com'
+      '/api': 'https://waitros-backend.onrender.com'
     }
   }
 })
