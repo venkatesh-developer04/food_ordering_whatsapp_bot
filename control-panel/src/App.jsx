@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Plus, Trash2, Edit, Save, X, IndianRupee, Users, Clock, ShieldCheck, LogOut, ArrowRightCircle, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
 import './index.css';
 
-const api = axios.create({ baseURL: '/api/admin' });
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api/admin' });
 
 function Login({ onLogin }) {
     const [user, setUser] = useState('');
@@ -234,13 +234,13 @@ export default function App() {
                                     </div>
                                     <div className="form-group">
                                         <label>Subdomain (URL Slug)</label>
-                                        <input required pattern="^[a-z0-9-]+$" placeholder="my-restaurant" value={formData.subdomain} onChange={e => setFormData({...formData, subdomain: e.target.value})} />
+                                        <input required pattern="^[a-z0-9]+(-[a-z0-9]+)*$" placeholder="my-restaurant" value={formData.subdomain} onChange={e => setFormData({...formData, subdomain: e.target.value})} />
                                     </div>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label>Email Address</label>
-                                        <input required type="email" pattern="[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-zA-Z]{2,4}" placeholder="contact@business.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                        <input required type="email" placeholder="contact@business.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                                     </div>
                                     <div className="form-group">
                                         <label>WhatsApp Number</label>
