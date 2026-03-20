@@ -8,7 +8,7 @@ export function SocketProvider({ children }) {
     const [waStatus, setWaStatus] = useState('connecting');
 
     useEffect(() => {
-        const s = io('http://localhost:5000', { transports: ['websocket'] });
+        const s = io('http://localhost:5000');
         setSocket(s);
 
         s.on('connect', () => console.log('Socket connected'));

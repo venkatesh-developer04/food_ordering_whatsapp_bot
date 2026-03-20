@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { menuAPI } from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, UtensilsCrossed, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, UtensilsCrossed, Search, X, Image as ImageIcon } from 'lucide-react';
+import Pagination from '../components/Pagination';
 
 const CATEGORIES = ['Starters', 'Main Course', 'Rice & Biryani', 'Breads', 'Desserts', 'Beverages', 'Snacks', 'Combos'];
 
@@ -110,19 +111,23 @@ export default function MenuManagement() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [modalOpen, setModalOpen] = useState(false);
     const [editItem, setEditItem] = useState(null);
 
     const loadItems = useCallback(async () => {
+        setLoading(true);
         try {
-            const res = await menuAPI.getAll();
-            setItems(res.data);
+            const res = await menuAPI.getAll({ page, limit: 10 });
+            setItems(res.data.data || res.data);
+            setTotalPages(res.data.totalPages || 1);
         } catch {
             toast.error('Failed to load menu');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page]);
 
     useEffect(() => { loadItems(); }, [loadItems]);
 
@@ -179,7 +184,7 @@ export default function MenuManagement() {
                         <div key={item._id} className="menu-card">
                             {item.image
                                 ? <img className="menu-card-img" src={item.image} alt={item.name} />
-                                : <div className="menu-card-img-placeholder">🍽️</div>
+                                : <div className="menu-card-img-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ImageIcon size={32} color="var(--text-muted)" /></div>
                             }
                             <div className="menu-card-body">
                                 <div className="category-tag">{item.category}</div>
@@ -205,6 +210,9 @@ export default function MenuManagement() {
                         </div>
                     ))}
                 </div>
+            )}
+            {!loading && filtered.length > 0 && (
+                <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
             )}
 
             {modalOpen && (

@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, UtensilsCrossed, ClipboardList, QrCode, Settings, ChefHat } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
+import { useSettings } from '../context/SettingsContext';
 import { useState, useEffect } from 'react';
 import { orderAPI } from '../api';
 
@@ -14,6 +15,7 @@ const navItems = [
 
 export default function Sidebar() {
     const { waStatus } = useSocket();
+    const { settings } = useSettings();
     const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
@@ -32,7 +34,7 @@ export default function Sidebar() {
                         <ChefHat size={20} color="white" />
                     </div>
                     <div>
-                        <div className="logo-name">Venkatesh Kitchen</div>
+                        <div className="logo-name">{settings?.shopName || 'Shop Name'}</div>
                         <div className="logo-sub">Admin Panel</div>
                     </div>
                 </div>

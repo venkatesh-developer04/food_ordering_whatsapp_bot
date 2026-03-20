@@ -1,7 +1,20 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const MenuItem = require('../models/MenuItem');
 const Order = require('../models/Order');
+const Settings = require('../models/Settings');
+const Tenant = require('../models/Tenant');
+
+let cachedSettings = null;
+let settingsTimer = 0;
+async function getSettings() {
+    if (!cachedSettings || Date.now() - settingsTimer > 60000) {
+        cachedSettings = (await Settings.findOne()) || (await Settings.create({}));
+        settingsTimer = Date.now();
+    }
+    return cachedSettings;
+}
+
 
 // ─── Per-customer session state ───────────────────────────────────────────────
 const sessions = new Map();   // phone → session object
@@ -29,7 +42,7 @@ async function fetchMenuItems() {
     return MenuItem.find({ isAvailable: true }).sort({ category: 1, name: 1 });
 }
 
-function buildMenuText(items) {
+function buildMenuText(items, settings) {
     if (!items.length) return { text: '😔 No items available right now. Please check back later!', items: [] };
     const categories = {};
     items.forEach((item, idx) => {
@@ -37,7 +50,7 @@ function buildMenuText(items) {
         categories[item.category].push({ ...item.toObject(), index: idx + 1 });
     });
 
-    let text = `🍽️ *Venkatesh Kitchen – Menu*\n\n`;
+    let text = `🍽️ *${settings.shopName} – Menu*\n\n`;
     for (const [cat, catItems] of Object.entries(categories)) {
         text += `📌 *${cat}*\n`;
         for (const it of catItems) {
@@ -50,16 +63,16 @@ function buildMenuText(items) {
     return { text, items };
 }
 
-function buildBill(session) {
+function buildBill(session, settings) {
     if (!session.cart.length) return '🛒 Your cart is empty — no charges!';
-    let bill = `🧾 *Your Bill — Venkatesh Kitchen*\n\n`;
+    let bill = `🧾 *Your Bill — ${settings.shopName}*\n\n`;
     let total = 0;
     session.cart.forEach((it, i) => {
         const sub = it.price * it.qty;
         bill += `${i + 1}. ${it.name}  x${it.qty}  → ₹${sub}\n`;
         total += sub;
     });
-    bill += `\n💰 *Total: ₹${total}*\n\nThank you for visiting Venkatesh Kitchen! 🙏\nCome back anytime — type *hi* to order again.`;
+    bill += `\n💰 *Total: ₹${total}*\n\nThank you for visiting ${settings.shopName}! 🙏\nCome back anytime — type *hi* to order again.`;
     return bill;
 }
 
@@ -74,7 +87,8 @@ async function startMenuReminder(client, phone) {
         }
         try {
             const items = await fetchMenuItems();
-            const { text } = buildMenuText(items);
+            const settings = await getSettings();
+            const { text } = buildMenuText(items, settings);
             const chatId = phone.includes('@c.us') ? phone : `${phone}@c.us`;
             await client.sendMessage(chatId,
                 `⏰ *Still hungry?* Here's our menu again:\n\n${text}`
@@ -92,9 +106,9 @@ function clearMenuReminder(phone) {
 }
 
 // ─── End / quit session ───────────────────────────────────────────────────────
-async function handleQuit(msg, session, io) {
+async function handleQuit(msg, session, io, settings) {
     clearMenuReminder(session.phone);
-    const bill = buildBill(session);
+    const bill = buildBill(session, settings);
 
     // Save partial order if cart has items
     if (session.cart.length > 0) {
@@ -146,7 +160,7 @@ async function initWhatsApp(io, restartFn) {
 
     // ── QR ──
     client.on('qr', async (qr) => {
-        console.log('📱 QR generated — scan in admin panel at /qr');
+        console.log('[INFO] QR generated — scan in admin panel at /qr');
         try {
             const qrImage = await qrcode.toDataURL(qr, { errorCorrectionLevel: 'M', scale: 6 });
             io.emit('whatsapp-qr', { qr: qrImage });
@@ -155,19 +169,19 @@ async function initWhatsApp(io, restartFn) {
 
     // ── Ready ──
     client.on('ready', () => {
-        console.log('✅ WhatsApp ready!');
+        console.log('[SUCCESS] WhatsApp ready!');
         client.isReady = true;
         io.emit('whatsapp-ready', { status: 'connected' });
     });
 
     // ── Disconnected — auto reinit so a fresh QR appears ──
     client.on('disconnected', (reason) => {
-        console.log('❌ WhatsApp disconnected:', reason);
+        console.log('[ERROR] WhatsApp disconnected:', reason);
         client.isReady = false;
         io.emit('whatsapp-disconnected', { reason });
         // Auto restart after 3 s → new QR generated automatically
         if (typeof restartFn === 'function') {
-            console.log('🔄 Auto-restarting WhatsApp in 3 s…');
+            console.log('[INFO] Auto-restarting WhatsApp in 3 s…');
             setTimeout(restartFn, 3000);
         }
     });
@@ -188,12 +202,13 @@ async function initWhatsApp(io, restartFn) {
         const text = msg.body.trim();
         const lower = text.toLowerCase();
         const session = getSession(phone);
+        const settings = await getSettings();
 
         try {
 
             // ── QUIT / EXIT / BYE ───────────────────────────────────────────────
             if (['quit', 'exit', 'bye', 'goodbye', 'stop'].includes(lower)) {
-                await handleQuit(msg, session, io);
+                await handleQuit(msg, session, io, settings);
                 return;
             }
 
@@ -203,9 +218,11 @@ async function initWhatsApp(io, restartFn) {
                 sessions.set(phone, createSession(phone));
                 const s = getSession(phone);
                 s.state = STATE.AWAITING_NAME;
-                await msg.reply(
-                    `👋 Welcome to *Venkatesh Kitchen*! 🍽️\n\nI'm your order assistant.\nWhat's your *name* please?`
-                );
+                
+                let welcome = settings.welcomeMessage || `Welcome to ${settings.shopName}!`;
+                welcome = welcome.replace(/\{\{restaurant_name\}\}/g, settings.shopName || 'our shop');
+                
+                await msg.reply(welcome);
                 return;
             }
 
@@ -215,7 +232,7 @@ async function initWhatsApp(io, restartFn) {
                 session.state = STATE.SELECTING;
                 const items = await fetchMenuItems();
                 session.menuItems = items;
-                const { text: menuTxt } = buildMenuText(items);
+                const { text: menuTxt } = buildMenuText(items, settings);
                 await msg.reply(
                     `Nice to meet you, *${session.name}*! 😊\n\nHere's our menu:\n\n${menuTxt}`
                 );
@@ -272,7 +289,7 @@ async function initWhatsApp(io, restartFn) {
                 if (lower === 'menu' || lower === 'show menu') {
                     const items = await fetchMenuItems();
                     session.menuItems = items;
-                    const { text: menuTxt } = buildMenuText(items);
+                    const { text: menuTxt } = buildMenuText(items, settings);
                     await msg.reply(menuTxt);
                     return;
                 }
@@ -338,13 +355,14 @@ async function initWhatsApp(io, restartFn) {
                     await order.save();
                     io.emit('new-order', order);
 
-                    await msg.reply(
-                        `🎉 *Order Placed!*\n\n` +
-                        `Order ID: *#${order._id.toString().slice(-6).toUpperCase()}*\n` +
-                        `💰 Total: *₹${total}*\n\n` +
-                        `We'll update you on your order status.\n` +
-                        `Type *quit* to exit or keep adding items!`
-                    );
+                    let confirmMsg = settings.orderConfirmMessage || `Order Placed! Order ID: #{{order_id}}. Total: ₹{{total_price}}.`;
+                    confirmMsg = confirmMsg
+                        .replace(/\{\{order_id\}\}/g, order._id.toString().slice(-6).toUpperCase())
+                        .replace(/\{\{total_price\}\}/g, total)
+                        .replace(/\{\{restaurant_name\}\}/g, settings.shopName)
+                        .replace(/\{\{customer_name\}\}/g, session.name);
+                        
+                    await msg.reply(confirmMsg);
 
                     // Reset cart but stay in SELECTING for more orders
                     session.cart = [];
@@ -364,7 +382,9 @@ async function initWhatsApp(io, restartFn) {
             }
 
             // Fallback
-            await msg.reply(`👋 Type *hi* to start ordering or *menu* to see our menu!\n\n🍽️ Venkatesh Kitchen`);
+            let fallback = settings.fallbackMessage || `Type 'hi' to order!`;
+            fallback = fallback.replace(/\{\{restaurant_name\}\}/g, settings.shopName);
+            await msg.reply(fallback);
 
         } catch (err) {
             console.error('Message handler error:', err);

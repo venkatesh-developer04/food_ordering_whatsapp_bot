@@ -1,5 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { useSettings } from '../context/SettingsContext';
+import { Store } from 'lucide-react';
 
 const TITLES = {
     '/': 'Dashboard',
@@ -11,7 +13,10 @@ const TITLES = {
 
 export default function Layout() {
     const { pathname } = useLocation();
+    const { settings, isLoaded } = useSettings();
     const title = TITLES[pathname] || 'Admin Panel';
+
+    if (!isLoaded) return <div style={{ padding: 20 }}>Loading...</div>;
 
     return (
         <div className="app-layout">
@@ -20,8 +25,8 @@ export default function Layout() {
                 <header className="topbar">
                     <h1 className="topbar-title">{title}</h1>
                     <div className="topbar-actions">
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            🍽️ Venkatesh Kitchen
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Store size={14} /> {settings?.shopName || 'Shop Name'}
                         </span>
                     </div>
                 </header>

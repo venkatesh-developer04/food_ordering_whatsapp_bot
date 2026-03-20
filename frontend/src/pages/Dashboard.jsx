@@ -56,7 +56,7 @@ export default function Dashboard() {
     useEffect(() => {
         if (!socket) return;
         const handleNewOrder = (order) => {
-            toast.success(`🛍️ New order from ${order.customerName}!`, { duration: 5000 });
+            toast.success(`New order from ${order.customerName}!`, { duration: 5000 });
             loadData();
         };
         const handleStatusUpdate = () => loadData();

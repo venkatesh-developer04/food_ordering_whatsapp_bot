@@ -9,6 +9,11 @@ const fs = require('fs');
 
 const menuRoutes = require('./routes/menu');
 const orderRoutes = require('./routes/orders');
+const settingsRoutes = require('./routes/settings');
+const adminAuthRoutes = require('./routes/admin/auth');
+const adminTenantRoutes = require('./routes/admin/tenants');
+
+const Admin = require('./models/Admin');
 const { initWhatsApp } = require('./services/whatsappService');
 
 const app = express();
@@ -17,14 +22,14 @@ const server = http.createServer(app);
 // ─── Socket.io ────────────────────────────────────────────────────────────────
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+        origin: true, // Allow dynamic subdomains like tenant.localhost:5174
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
         credentials: true,
     },
 });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -36,12 +41,15 @@ app.set('io', io);
 
 // ─── MongoDB ──────────────────────────────────────────────────────────────────
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => console.error('❌ MongoDB error:', err.message));
+    .then(() => console.log('[SUCCESS] MongoDB connected'))
+    .catch(err => console.error('[ERROR] MongoDB error:', err.message));
 
 // ─── REST Routes ──────────────────────────────────────────────────────────────
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin/tenants', adminTenantRoutes);
 app.get('/api/health', (_req, res) => res.json({
     status: 'ok',
     shop: process.env.SHOP_NAME,
@@ -86,7 +94,7 @@ async function startWhatsApp() {
         );   // pass restartFn so service can trigger it
         app.set('waClient', waClient);
     } catch (err) {
-        console.error('❌ WhatsApp init failed:', err.message);
+        console.error('[ERROR] WhatsApp init failed:', err.message);
         io.emit('whatsapp-disconnected', { reason: err.message });
     } finally {
         isRestarting = false;
@@ -110,7 +118,7 @@ async function logoutWhatsApp() {
 
 // ─── Socket.io events from admin panel ───────────────────────────────────────
 io.on('connection', (socket) => {
-    console.log(`🔌 Admin connected: ${socket.id}`);
+    console.log(`[SOCKET] Admin connected: ${socket.id}`);
 
     // Send current state immediately so the page doesn't wait
     if (waConnected) {
@@ -121,23 +129,28 @@ io.on('connection', (socket) => {
 
     // Admin clicks "Reconnect" button
     socket.on('restart-whatsapp', () => {
-        console.log('🔄 Admin requested WhatsApp restart');
+        console.log('[SOCKET] Admin requested WhatsApp restart');
         startWhatsApp();
     });
 
     // Admin clicks "Disconnect" button
     socket.on('logout-whatsapp', () => {
-        console.log('🔓 Admin requested WhatsApp logout');
+        console.log('[SOCKET] Admin requested WhatsApp logout');
         logoutWhatsApp();
     });
 
-    socket.on('disconnect', () => console.log(`🔌 Admin disconnected: ${socket.id}`));
+    socket.on('disconnect', () => console.log(`[SOCKET] Admin disconnected: ${socket.id}`));
 });
 
 // ─── Start server ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, async () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`[INFO] Server running on http://localhost:${PORT}`);
+
+    // Seed default admin if not exists
+    const adminExists = await Admin.findOne({ username: 'venkatesh' });
+    if (!adminExists) await Admin.create({ username: 'venkatesh', password: 'Venkat%2003' });
+
     await startWhatsApp();
 });
 

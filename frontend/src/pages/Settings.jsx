@@ -1,9 +1,51 @@
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../context/SettingsContext';
 import { Palette, Check, Store, Phone, Clock, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useState, useEffect } from 'react';
 
 export default function Settings() {
     const { theme, setTheme, THEMES } = useTheme();
+    const { settings, updateSettings, isLoaded } = useSettings();
+    const [formData, setFormData] = useState({});
+
+    useEffect(() => {
+        if (settings) {
+            setFormData(settings);
+        }
+    }, [settings]);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSaveShop = async () => {
+        try {
+            await updateSettings({
+                shopName: formData.shopName,
+                address: formData.address,
+                openingHours: formData.openingHours,
+            });
+            toast.success('Settings saved!');
+        } catch (err) {
+            toast.error('Failed to save settings');
+        }
+    };
+
+    const handleSaveBot = async () => {
+        try {
+            await updateSettings({
+                welcomeMessage: formData.welcomeMessage,
+                orderConfirmMessage: formData.orderConfirmMessage,
+                fallbackMessage: formData.fallbackMessage,
+            });
+            toast.success('Bot config saved!');
+        } catch (err) {
+            toast.error('Failed to save config');
+        }
+    };
+
+    if (!isLoaded) return <div style={{ padding: 20 }}>Loading settings...</div>;
 
     return (
         <>
@@ -17,25 +59,25 @@ export default function Settings() {
                 <div className="form-row">
                     <div className="form-group">
                         <label className="form-label">Shop Name</label>
-                        <input className="form-input" defaultValue="Venkatesh Kitchen" readOnly style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+                        <input name="shopName" value={formData.shopName || ''} onChange={handleChange} className="form-input" />
                     </div>
                     <div className="form-group">
                         <label className="form-label">WhatsApp Number</label>
-                        <input className="form-input" defaultValue="Linked via QR Code" readOnly style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+                        <input className="form-input" value="Linked via QR Code" readOnly style={{ opacity: 0.7, cursor: 'not-allowed' }} />
                     </div>
                 </div>
                 <div className="form-row">
                     <div className="form-group">
                         <label className="form-label">Opening Hours</label>
-                        <input className="form-input" defaultValue="9:00 AM – 10:00 PM" />
+                        <input name="openingHours" value={formData.openingHours || ''} onChange={handleChange} className="form-input" />
                     </div>
                     <div className="form-group">
                         <label className="form-label">Address</label>
-                        <input className="form-input" placeholder="Enter shop address..." />
+                        <input name="address" value={formData.address || ''} onChange={handleChange} className="form-input" placeholder="Enter shop address..." />
                     </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-primary" onClick={() => toast.success('Settings saved!')}>Save Changes</button>
+                    <button className="btn btn-primary" onClick={handleSaveShop}>Save Changes</button>
                 </div>
             </div>
 
@@ -84,15 +126,19 @@ export default function Settings() {
                     </h2>
                 </div>
                 <div className="form-group">
-                    <label className="form-label">Welcome Message</label>
-                    <textarea className="form-textarea" defaultValue="👋 Welcome to Venkatesh Kitchen! Type 'hi' or 'menu' to start ordering. 🍽️" style={{ minHeight: 70 }} />
+                    <label className="form-label">Welcome Message (Use {"{{restaurant_name}}"}, {"{{customer_name}}"})</label>
+                    <textarea name="welcomeMessage" value={formData.welcomeMessage || ''} onChange={handleChange} className="form-textarea" style={{ minHeight: 70 }} />
                 </div>
                 <div className="form-group">
-                    <label className="form-label">Order Confirmed Message</label>
-                    <textarea className="form-textarea" defaultValue="✅ Your order has been confirmed! We are getting it ready." style={{ minHeight: 70 }} />
+                    <label className="form-label">Order Confirmed Message (Use {"{{order_id}}"}, {"{{total_price}}"})</label>
+                    <textarea name="orderConfirmMessage" value={formData.orderConfirmMessage || ''} onChange={handleChange} className="form-textarea" style={{ minHeight: 70 }} />
+                </div>
+                <div className="form-group">
+                    <label className="form-label">Fallback Message (Use {"{{restaurant_name}}"})</label>
+                    <textarea name="fallbackMessage" value={formData.fallbackMessage || ''} onChange={handleChange} className="form-textarea" style={{ minHeight: 70 }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-primary" onClick={() => toast.success('Bot config saved!')}>Save Bot Config</button>
+                    <button className="btn btn-primary" onClick={handleSaveBot}>Save Bot Config</button>
                 </div>
             </div>
         </>

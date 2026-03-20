@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const MenuItemSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
   price: { type: Number, required: true, min: 0 },

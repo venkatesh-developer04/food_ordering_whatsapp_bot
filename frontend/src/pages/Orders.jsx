@@ -3,6 +3,7 @@ import { orderAPI } from '../api';
 import { useSocket } from '../context/SocketContext';
 import toast from 'react-hot-toast';
 import { RefreshCw, Filter, ShoppingBag, ChevronDown, X } from 'lucide-react';
+import Pagination from '../components/Pagination';
 
 const STATUSES = ['all', 'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
 
@@ -75,22 +76,27 @@ export default function Orders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
     const loadOrders = useCallback(async () => {
         try {
-            const res = await orderAPI.getAll(filter === 'all' ? null : filter);
-            setOrders(res.data);
+            const params = { page, limit: 10 };
+            if (filter !== 'all') params.status = filter;
+            const res = await orderAPI.getAll(params);
+            setOrders(res.data.data || res.data); // Support both old and new API response formats
+            setTotalPages(res.data.totalPages || 1);
         } catch { toast.error('Failed to load orders'); }
         finally { setLoading(false); }
-    }, [filter]);
+    }, [filter, page]);
 
     useEffect(() => { loadOrders(); }, [loadOrders]);
 
     useEffect(() => {
         if (!socket) return;
         const onNew = (order) => {
-            toast.success(`🛍️ New order from ${order.customerName}!`, { duration: 6000 });
+            toast.success(`New order from ${order.customerName}!`, { duration: 6000 });
             loadOrders();
         };
         const onUpdate = () => loadOrders();
@@ -183,6 +189,7 @@ export default function Orders() {
                             </tbody>
                         </table>
                     </div>
+                    <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
                 </div>
             )}
 

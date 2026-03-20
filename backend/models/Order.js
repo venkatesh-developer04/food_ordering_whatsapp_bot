@@ -8,6 +8,7 @@ const OrderItemSchema = new mongoose.Schema({
 });
 
 const OrderSchema = new mongoose.Schema({
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
     customerPhone: { type: String, required: true },
     customerName: { type: String, default: 'Customer' },
     items: [OrderItemSchema],

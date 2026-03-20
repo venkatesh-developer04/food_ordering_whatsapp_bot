@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
-import { Wifi, WifiOff, Smartphone, RefreshCw, QrCode, LogOut } from 'lucide-react';
+import { Wifi, WifiOff, Smartphone, RefreshCw, QrCode, LogOut, Bot } from 'lucide-react';
 
 export default function QRPage() {
     const { socket, waStatus } = useSocket();
@@ -95,7 +95,7 @@ export default function QRPage() {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--success)' }}>
-                            WhatsApp Connected ✅
+                            WhatsApp Connected
                         </div>
                         <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: 6 }}>
                             Your bot is live and accepting orders from multiple customers.
@@ -268,7 +268,9 @@ export default function QRPage() {
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius)', padding: '22px 28px', maxWidth: 440, width: '100%',
             }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14 }}>🤖 Customer Commands</h3>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Bot size={16} color="var(--primary)" /> Customer Commands
+                </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                     {[
                         ['hi / hello / menu', 'Start ordering'],
